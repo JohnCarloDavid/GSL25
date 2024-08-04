@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSL25</title>
+    <link rel="icon" href="img/GSL25_transparent 2.png">
+    <!-- Include Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Include Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        .flip-card {
+            perspective: 1000px;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .flip-card:hover .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front,
+        .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .flip-card-front {
+            background-color: #ffffff;
+            color: black;
+            padding: 20px;
+        }
+
+        .flip-card-back {
+            background-color: #1a202c;
+            color: white;
+            transform: rotateY(180deg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .flip-card-back p {
+            font-size: 1.1rem; /* Adjust font size as needed */
+        }
+
+        .card-container {
+            width: 100%;
+            max-width: 300px;
+            height: 300px;
+        }
+
+        .flip-card-front i {
+            margin-top: -10px; /* Adjust icon position */
+        }
+
+        .flip-card-front h2 {
+            font-size: 1.5rem; /* Adjust font size */
+        }
+
+        /* Custom Button Animation */
+        .custom-btn {
+            position: relative;
+            display: inline-block;
+            overflow: hidden;
+            transition: transform 0.3s;
+            border-radius: 999px; /* Large border radius for rounded effect */
+        }
+
+        .custom-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background-color: rgba(0, 0, 255, 0.3);
+            transition: all 0.5s ease;
+            border-radius: 50%;
+            z-index: 0;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+        }
+
+        .custom-btn:hover::before {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .custom-btn span {
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+
+    <nav class="navbar bg-gray-800 text-white py-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="left">
+                <a href="index.html">
+                    <img src="img/GSL25_transparent 2.png" alt="GSL25 Logo" class="h-14">   
+                </a>
+            </div>
+            <div class="right">
+                <a href="login.php" class="mr-4">
+                    <button
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline transition duration-300">
+                        Login
+                    </button>
+                </a>
+                <a href="signup.php">
+                    <button
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline transition duration-300">
+                        Sign Up
+                    </button>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto py-8 px-4">
+
+        <section class="lg:flex lg:justify-between">
+
+            <div class="lg:w-1/2 lg:pr-8">
+                <div class="intro-section bg-white rounded-lg shadow-md p-6">
+                    <h1 class="text-4xl text-gray-900 font-extrabold mb-4">An Easy Way to Order Your Needs!</h1>
+                    <p class="text-lg text-gray-700 mb-6 leading-relaxed">Discover a convenient online hardware store in Sasmuan that offers a superior shopping experience with high-quality products and easy-to-use features.</p>
+                    <a href="#" class="inline-block custom-btn">
+                        <button
+                            class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline transition duration-300">
+                            <span>Learn More</span>
+                        </button>
+                    </a>
+                </div>
+
+                <div class="cards-container mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="flip-card card-container mx-auto">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front p-6 flex flex-col items-center">
+                                <i class="fa-solid fa-circle-check fa-2x text-blue-500"></i>
+                                <h2 class="text-xl text-gray-800 font-bold mt-2">Easy to use!</h2>
+                            </div>
+                            <div class="flip-card-back">
+                                <p>Our platform is user-friendly and easy to navigate.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flip-card card-container mx-auto">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front p-6 flex flex-col items-center">
+                                <i class="fa-solid fa-circle-check fa-2x text-green-500"></i>
+                                <h2 class="text-xl text-gray-800 font-bold mt-2">Quality Items</h2>
+                            </div>
+                            <div class="flip-card-back">
+                                <p>We offer high-quality items that meet your construction needs.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flip-card card-container mx-auto">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front p-6 flex flex-col items-center">
+                                <i class="fa-solid fa-circle-check fa-2x text-yellow-500"></i>
+                                <h2 class="text-xl text-gray-800 font-bold mt-2">Inventory</h2>
+                            </div>
+                            <div class="flip-card-back">
+                                <p>Check our inventory to find all the items you need in stock.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:w-1/2 mt-8 lg:mt-0">
+                <div class="right-content flex flex-col lg:flex-row lg:flex-wrap justify-center lg:justify-end items-center gap-4">
+                    <div class="card-container bg-white rounded-lg shadow-md p-6 hover:shadow-xl transform transition-transform">
+                        <img src="img/image1.png" alt="Image 1" class="w-full">
+                    </div>
+                    <div class="card-container bg-white rounded-lg shadow-md p-6 hover:shadow-xl transform transition-transform">
+                        <img src="img/image2.png" alt="Image 2" class="w-full">
+                    </div>
+                    <div class="card-container bg-white rounded-lg shadow-md p-6 hover:shadow-xl transform transition-transform">
+                        <img src="img/image3.png" alt="Image 3" class="w-full">
+                    </div>
+                    <div class="card-container bg-white rounded-lg shadow-md p-6 hover:shadow-xl transform transition-transform">
+                        <img src="img/image4.png" alt="Image 4" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </div>
+
+</body>
+
+</html>
