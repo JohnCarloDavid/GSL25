@@ -5,57 +5,83 @@ include 'config.php'; // Ensure you have a config.php with database connection s
 $errorMessage = '';
 $successMessage = '';
 
+// Fetch security questions for the dropdown
+$questions = [];
+$stmt = $conn->prepare("SELECT id, question FROM security_questions");
+if ($stmt === false) {
+    die('Prepare failed: ' . $conn->error); // Handle error
+}
+$stmt->execute();
+$stmt->bind_result($id, $question);
+while ($stmt->fetch()) {
+    $questions[] = ['id' => $id, 'question' => $question];
+}
+$stmt->close();
+
 // Check for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $surname = $_POST['surname'];
     $firstname = $_POST['firstname'];
-    $email = $_POST['email'];
+    $username = $_POST['username'];
+    $mobile = $_POST['mobile'];
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
+    $security_question = $_POST['security_question'];
+    $security_answer = $_POST['security_answer'];
 
-    // Validate email domain
-    if (!preg_match('/@gmail\.com$/i', $email)) {
-        $errorMessage = 'Only Gmail addresses are allowed.';
-    } elseif ($password !== $confirm_password) {
+    // Validate password
+    if ($password !== $confirm_password) {
         $errorMessage = 'Passwords do not match.';
     } elseif (strlen($password) < 8 || strlen($password) > 16 || !preg_match('/[A-Z]/', $password) || !preg_match('/[\W]/', $password) || preg_match('/\s/', $password)) {
         $errorMessage = 'Password must be between 8 and 16 characters long, contain at least one uppercase letter, one special character, and have no spaces.';
     } else {
-        // Check if email already exists
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM tb_gsl25 WHERE user_email = ?");
+        // Check if mobile number is already in use
+        $stmt = $conn->prepare("SELECT id FROM tb_gsl25 WHERE mobile = ?");
         if ($stmt === false) {
             die('Prepare failed: ' . $conn->error); // Handle error
         }
-        $stmt->bind_param("s", $email);
+        $stmt->bind_param("s", $mobile);
         $stmt->execute();
-        $stmt->bind_result($emailCount);
-        $stmt->fetch();
-        $stmt->close();
-
-        if ($emailCount > 0) {
-            $errorMessage = 'This email is already registered.';
+        $stmt->store_result();
+        if ($stmt->num_rows > 0) {
+            $errorMessage = 'Mobile number is already registered.';
+            $stmt->close(); // Close the statement
         } else {
-            // Insert into the database without hashing the password
-            $stmt = $conn->prepare("INSERT INTO tb_gsl25 (surname, firstname, user_email, password) VALUES (?, ?, ?, ?)");
+            // Check if username is already in use
+            $stmt = $conn->prepare("SELECT id FROM tb_gsl25 WHERE username = ?");
             if ($stmt === false) {
                 die('Prepare failed: ' . $conn->error); // Handle error
             }
-            $stmt->bind_param("ssss", $surname, $firstname, $email, $password);
-
-            if ($stmt->execute()) {
-                $successMessage = 'Account successfully created!'; // Set success message
-                header('Location: login.php'); // Redirect to login after successful registration
-                exit();
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $stmt->store_result();
+            if ($stmt->num_rows > 0) {
+                $errorMessage = 'Username is already taken.';
+                $stmt->close(); // Close the statement
             } else {
-                $errorMessage = 'Error: ' . $stmt->error;
-            }
+                // Insert into the database
+                $stmt = $conn->prepare("INSERT INTO tb_gsl25 (surname, firstname, username, mobile, password, security_question_id, security_answer) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                if ($stmt === false) {
+                    die('Prepare failed: ' . $conn->error); // Handle error
+                }
+                $stmt->bind_param("sssssss", $surname, $firstname, $username, $mobile, $password, $security_question, $security_answer);
 
-            $stmt->close();
+                if ($stmt->execute()) {
+                    $successMessage = 'Account successfully created!';
+                    header('Location: login.php'); // Redirect to login page after successful registration
+                    exit();
+                } else {
+                    $errorMessage = 'Error occurred while registering. Please try again.';
+                }
+                $stmt->close(); // Close the statement
+            }
         }
     }
     $conn->close();
 }
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,31 +95,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         .form-container {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.5s ease, transform 0.5s ease;
+            background: rgba(255, 255, 255, 0.8);
         }
-        .form-container.visible {
-            opacity: 1;
-            transform: translateY(0);
+        .password-toggle {
+            cursor: pointer;
+            position: absolute;
+            right: 1rem; /* Center the icon within the input field */
+            top: 70%;
+            transform: translateY(-50%);
         }
-        .logo-link img {
-            transition: transform 0.3s ease, filter 0.3s ease;
-        }
-        .logo-link:hover img {
-            transform: scale(1.1);
-            filter: brightness(1.2);
-        }
-        .form-group {
-            display: flex;
-            justify-content: space-between;
-        }
-        .form-group .input-container {
-            flex: 1;
-            margin-right: 1rem;
-        }
-        .form-group .input-container:last-child {
-            margin-right: 0;
+        .input-container {
+            position: relative;
         }
     </style>
 </head>
@@ -103,58 +115,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="index.html" class="logo-link"><img src="img/GSL25_transparent 2.png" alt="logo" class="h-25"></a>
         </div>
         <div id="form-container" class="max-w-md mx-auto bg-gray-200 p-8 border border-gray-300 rounded-lg shadow-lg form-container">
-            <h1 class="focus:outline-none text-2xl font-extrabold leading-6 text-gray-800 mb-4 text-center">Sign Up</h1>
+            <h1 class="text-2xl font-extrabold leading-6 text-gray-800 mb-4 text-center">Sign Up</h1>
 
-            <div id="response-message"></div>
+            <?php if (!empty($errorMessage)): ?>
+                <div id="error-message" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <strong class="font-bold"><?php echo $errorMessage; ?></strong>
+                </div>
+            <?php endif; ?>
 
-            <form id="signup-form">
-                <div class="form-group mb-4">
-                    <div class="input-container">
+            <?php if (!empty($successMessage)): ?>
+                <div id="success-message" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <strong class="font-bold"><?php echo $successMessage; ?></strong>
+                </div>
+            <?php endif; ?>
+
+            <form id="signup-form" method="POST" action="signup.php">
+                <div class="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
+                    <div class="relative mb-4">
                         <label for="surname" class="block text-gray-700 font-bold mb-2">Surname:</label>
                         <input type="text" id="surname" name="surname" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
                     </div>
-                    <div class="input-container">
+                    <div class="relative mb-4">
                         <label for="firstname" class="block text-gray-700 font-bold mb-2">First Name:</label>
                         <input type="text" id="firstname" name="firstname" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
                     </div>
                 </div>
-                <div class="mb-4">
-                    <label for="email" class="block text-gray-700 font-bold mb-2">Email:</label>
-                    <input type="email" id="email" name="email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 mb-4">
+                    <div class="relative mb-4">
+                        <label for="username" class="block text-gray-700 font-bold mb-2">Username:</label>
+                        <input type="text" id="username" name="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                    </div>
+                    <div class="relative mb-4">
+                        <label for="mobile" class="block text-gray-700 font-bold mb-2">Mobile Number:</label>
+                        <input type="text" id="mobile" name="mobile" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                    </div>
                 </div>
-                <div class="mb-6">
-                    <label for="password" class="block text-gray-700 font-bold mb-2">Password:</label>
-                    <div class="relative">
-                        <input type="password" id="password" name="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" minlength="8" maxlength="16" required>
-                        <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-3 py-2 text-gray-600">
+                <div class="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
+                    <div class="relative input-container mb-4">
+                        <label for="password" class="block text-gray-700 font-bold mb-2">Password:</label>
+                        <input type="password" id="password" name="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline pr-12" required>
+                        <button type="button" id="toggle-password" class="password-toggle">
                             <i class="fa fa-eye" id="password-icon"></i>
                         </button>
                     </div>
-                    <p id="password-error" class="text-red-500 text-xs italic hidden">Password must be between 8 and 16 characters long, contain at least one uppercase letter, one special character, and have no spaces.</p>
-                </div>
-                <div class="mb-6">
-                    <label for="confirm_password" class="block text-gray-700 font-bold mb-2">Confirm Password:</label>
-                    <div class="relative">
-                        <input type="password" id="confirm_password" name="confirm_password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" required>
-                        <button type="button" id="toggle-confirm-password" class="absolute inset-y-0 right-0 px-3 py-2 text-gray-600">
+                    <div class="relative input-container mb-4">
+                        <label for="confirm_password" class="block text-gray-700 font-bold mb-2">Confirm Password:</label>
+                        <input type="password" id="confirm_password" name="confirm_password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline pr-12" required>
+                        <button type="button" id="toggle-confirm-password" class="password-toggle">
                             <i class="fa fa-eye" id="confirm-password-icon"></i>
                         </button>
                     </div>
-                    <p id="confirm-password-error" class="text-red-500 text-xs italic hidden">Passwords do not match.</p>
                 </div>
+                <div class="relative mb-4">
+                    <label for="security_question" class="block text-gray-700 font-bold mb-2">Security Question:</label>
+                    <select id="security_question" name="security_question" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                        <option value="" disabled selected>Select a question</option>
+                        <?php foreach ($questions as $question): ?>
+                            <option value="<?php echo $question['id']; ?>"><?php echo htmlspecialchars($question['question']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="relative mb-4">
+                    <label for="security_answer" class="block text-gray-700 font-bold mb-2">Security Answer:</label>
+                    <input type="text" id="security_answer" name="security_answer" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                </div>
+               
                 <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Sign Up</button>
             </form>
-            <p class="text-gray-600 text-center mt-4">
-                Already have an account? <a href="login.php" class="text-blue-500 hover:text-blue-700">Log in</a>
-            </p>
+            <p class="mt-4 text-center text-gray-600">Already have an account? <a href="login.php" class="text-green-500 hover:text-green-700 font-bold">Log in here</a>.</p>
         </div>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Show form container with animation
-            document.getElementById('form-container').classList.add('visible');
-
             // Toggle password visibility
             const togglePassword = document.getElementById('toggle-password');
             const passwordField = document.getElementById('password');
@@ -182,70 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     confirmPasswordIcon.classList.replace('fa-eye-slash', 'fa-eye');
                 }
             });
-
-            // Handle form submission with AJAX
-            const form = document.getElementById('signup-form');
-            form.addEventListener('submit', function(event) {
-                event.preventDefault(); // Prevent the default form submission
-
-                if (!validatePassword()) {
-                    return; // Stop if validation fails
-                }
-
-                const formData = new FormData(form);
-
-                fetch('signup.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const responseMessage = document.getElementById('response-message');
-                    responseMessage.innerHTML = '';
-
-                    if (data.success) {
-                        responseMessage.innerHTML = `<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert"><strong class="font-bold">${data.success}</strong></div>`;
-                        setTimeout(() => {
-                            window.location.href = 'login.php'; // Redirect to login page after successful registration
-                        }, 2000); // Redirect after 2 seconds to show the success message
-                    } else if (data.error) {
-                        responseMessage.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert"><strong class="font-bold">${data.error}</strong></div>`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-            });
         });
-
-        function validatePassword() {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
-
-            const passwordError = document.getElementById('password-error');
-            const confirmPasswordError = document.getElementById('confirm-password-error');
-            let valid = true;
-
-            // Password validation
-            const passwordRegex = /^(?=.*[A-Z])(?=.*[\W])(?=\S)(?!.*\s).{8,16}$/;
-            if (!passwordRegex.test(password)) {
-                passwordError.classList.remove('hidden');
-                valid = false;
-            } else {
-                passwordError.classList.add('hidden');
-            }
-
-            // Confirm password validation
-            if (password !== confirmPassword) {
-                confirmPasswordError.classList.remove('hidden');
-                valid = false;
-            } else {
-                confirmPasswordError.classList.add('hidden');
-            }
-
-            return valid;
-        }
     </script>
 </body>
 </html>
-
